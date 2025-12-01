@@ -201,8 +201,6 @@ class GRPO(OnPolicyAlgorithm):
 
     def _compute_group_advantages(
         self,
-        observations: th.Tensor,
-        actions: th.Tensor,
         advantages: th.Tensor,
     ) -> th.Tensor:
         """
@@ -212,8 +210,6 @@ class GRPO(OnPolicyAlgorithm):
         feedback for policy optimization. It's a key component of GRPO that
         allows training without a learned value function.
 
-        :param observations: Batch of observations
-        :param actions: Batch of actions
         :param advantages: Raw advantages computed using GAE
         :return: Group-normalized advantages
         """
@@ -290,11 +286,7 @@ class GRPO(OnPolicyAlgorithm):
                 # Normalize the advantages using group-relative normalization (GRPO)
                 advantages = rollout_data.advantages
                 if self.normalize_advantage and len(advantages) > 1:
-                    advantages = self._compute_group_advantages(
-                        rollout_data.observations,
-                        actions,
-                        advantages,
-                    )
+                    advantages = self._compute_group_advantages(advantages)
 
                 # ratio between old and new policy
                 ratio = th.exp(log_prob - rollout_data.old_log_prob)
@@ -311,8 +303,8 @@ class GRPO(OnPolicyAlgorithm):
 
                 # KL divergence loss (GRPO regularization)
                 # Approximate KL using log probability difference
+                log_ratio = log_prob - rollout_data.old_log_prob
                 with th.no_grad():
-                    log_ratio = log_prob - rollout_data.old_log_prob
                     approx_kl = th.mean((th.exp(log_ratio) - 1) - log_ratio).item()
                     approx_kl_divs.append(approx_kl)
 
