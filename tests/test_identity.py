@@ -4,17 +4,18 @@ from stable_baselines3.common.envs import IdentityEnv, IdentityEnvMultiBinary, I
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv
 
-from sb3_contrib import QRDQN, TRPO
+from sb3_contrib import GRPO, QRDQN, TRPO
 
 DIM = 4
 
 
-@pytest.mark.parametrize("model_class", [QRDQN, TRPO])
+@pytest.mark.parametrize("model_class", [GRPO, QRDQN, TRPO])
 @pytest.mark.parametrize("env", [IdentityEnv(DIM), IdentityEnvMultiDiscrete(DIM), IdentityEnvMultiBinary(DIM)])
 def test_discrete(model_class, env):
     vec_env = DummyVecEnv([lambda: env])
     kwargs = {}
     n_steps = 1500
+    reward_threshold = 90
     if model_class == QRDQN:
         kwargs = dict(
             learning_starts=0,
@@ -27,12 +28,17 @@ def test_discrete(model_class, env):
         # DQN only support discrete actions
         if isinstance(env, (IdentityEnvMultiDiscrete, IdentityEnvMultiBinary)):
             return
-    elif n_steps == TRPO:
+    elif model_class == TRPO:
         kwargs = dict(n_steps=256, cg_max_steps=5)
+    elif model_class == GRPO:
+        kwargs = dict(n_steps=256)
+        # MultiBinary is harder to learn, lower threshold
+        if isinstance(env, IdentityEnvMultiBinary):
+            reward_threshold = 60
 
     model = model_class("MlpPolicy", vec_env, learning_rate=1e-3, gamma=0.4, seed=0, **kwargs).learn(n_steps)
 
-    evaluate_policy(model, vec_env, n_eval_episodes=20, reward_threshold=90, warn=False)
+    evaluate_policy(model, vec_env, n_eval_episodes=20, reward_threshold=reward_threshold, warn=False)
     obs = vec_env.reset()
 
     assert np.shape(model.predict(obs)[0]) == np.shape(obs)

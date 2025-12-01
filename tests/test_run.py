@@ -3,7 +3,7 @@ import pytest
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecNormalize
 
-from sb3_contrib import ARS, QRDQN, TQC, TRPO, CrossQ, MaskablePPO
+from sb3_contrib import ARS, GRPO, QRDQN, TQC, TRPO, CrossQ, MaskablePPO
 from sb3_contrib.common.envs import InvalidActionEnvDiscrete
 from sb3_contrib.common.vec_env import AsyncEval
 
@@ -71,6 +71,12 @@ def test_qrdqn():
         learning_rate=3e-4,
         verbose=1,
     )
+    model.learn(total_timesteps=500)
+
+
+@pytest.mark.parametrize("env_id", ["CartPole-v1", "Pendulum-v1"])
+def test_grpo(env_id):
+    model = GRPO("MlpPolicy", env_id, n_steps=128, seed=0, policy_kwargs=dict(net_arch=[16]), verbose=1)
     model.learn(total_timesteps=500)
 
 
