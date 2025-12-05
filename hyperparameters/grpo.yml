@@ -3,14 +3,17 @@
 # =============================================================================
 # 
 # GRPO is a reinforcement learning algorithm that uses group-based relative advantage
-# estimation instead of a learned value function (critic). It generates multiple action
-# samples per state and normalizes rewards within each group to compute advantages.
+# estimation. It generates multiple action samples per state and normalizes rewards
+# within each group to compute advantages.
 # 
 # Key features:
-# - No critic network needed - reduces computational overhead
 # - Group-based advantage normalization for stable training
 # - KL divergence regularization to prevent policy collapse
 # - Compatible with continuous and discrete action spaces
+# - Can operate in "pure GRPO" mode (vf_coef=0) or hybrid mode (vf_coef>0)
+#
+# This implementation uses GAE to compute initial advantages, then applies
+# GRPO's group-based normalization on top.
 #
 # Paper reference: DeepSeek-Math (https://arxiv.org/abs/2402.03300)
 #
@@ -57,9 +60,11 @@
 #   - Type: float
 #   - Default: 0.95
 #   - Typical range: 0.9 to 1.0
-#   - Notes: Trade-off between bias and variance
+#   - Notes: Trade-off between bias and variance for GAE
 #            1.0 = high variance, low bias (Monte Carlo)
 #            0.0 = low variance, high bias (TD)
+#            GAE computes initial advantages, which are then normalized
+#            using GRPO's group-based method
 #
 # normalize_advantage: Whether to normalize advantages
 #   - Type: bool
@@ -92,12 +97,13 @@
 #   - Notes: Limits policy update magnitude per step
 #            Can be a function of progress remaining
 #
-# clip_range_vf: Clipping parameter for value function
+# clip_range_vf: Clipping parameter for value function (hybrid mode only)
 #   - Type: float, Schedule, or None
 #   - Default: None (no clipping)
 #   - Typical range: None, or 0.1 to 10.0 if used
-#   - Notes: Only relevant when vf_coef > 0
-#            Depends on reward scaling
+#   - Notes: Only relevant when vf_coef > 0 (hybrid GRPO-PPO mode)
+#            For pure GRPO (vf_coef=0), leave as None
+#            Depends on reward scaling when used
 #
 # LOSS COEFFICIENTS
 # -----------------
