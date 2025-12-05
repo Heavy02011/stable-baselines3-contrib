@@ -1,7 +1,206 @@
-# GRPO Hyperparameters for Autonomous Racing (Donkey Car Simulator)
-# Group Relative Policy Optimization configuration optimized for autonomous racing tasks.
-# GRPO uses group-based advantage normalization and KL divergence regularization
-# for stable training without requiring a learned value function.
+# =============================================================================
+# GRPO (Group Relative Policy Optimization) Hyperparameters Reference
+# =============================================================================
+# 
+# GRPO is a reinforcement learning algorithm that uses group-based relative advantage
+# estimation. It generates multiple action samples per state and normalizes rewards
+# within each group to compute advantages.
+# 
+# Key features:
+# - Group-based advantage normalization for stable training
+# - KL divergence regularization to prevent policy collapse
+# - Compatible with continuous and discrete action spaces
+# - Can operate in "pure GRPO" mode (vf_coef=0) or hybrid mode (vf_coef>0)
+#
+# This implementation uses GAE to compute initial advantages, then applies
+# GRPO's group-based normalization on top.
+#
+# Paper reference: DeepSeek-Math (https://arxiv.org/abs/2402.03300)
+#
+# =============================================================================
+# COMPLETE PARAMETER REFERENCE WITH TYPICAL RANGES
+# =============================================================================
+#
+# CORE TRAINING PARAMETERS
+# ------------------------
+# learning_rate: Learning rate for the optimizer
+#   - Type: float or Schedule
+#   - Default: 3e-4
+#   - Typical range: 1e-5 to 1e-3
+#   - Notes: Can be a function of progress remaining (from 1 to 0)
+#
+# n_steps: Number of steps to run per environment per update
+#   - Type: int
+#   - Default: 2048
+#   - Typical range: 128 to 8192
+#   - Notes: Larger values = more stable but slower updates
+#            Buffer size = n_steps * n_envs
+#
+# batch_size: Minibatch size for each gradient update
+#   - Type: int
+#   - Default: 64
+#   - Typical range: 32 to 512
+#   - Notes: Should divide evenly into n_steps * n_envs
+#
+# n_epochs: Number of epochs when optimizing the surrogate loss
+#   - Type: int
+#   - Default: 10
+#   - Typical range: 3 to 30
+#   - Notes: More epochs = more gradient steps per rollout
+#
+# DISCOUNT AND ADVANTAGE PARAMETERS
+# ---------------------------------
+# gamma: Discount factor for future rewards
+#   - Type: float
+#   - Default: 0.99
+#   - Typical range: 0.9 to 0.999
+#   - Notes: Higher values weight future rewards more heavily
+#
+# gae_lambda: Factor for Generalized Advantage Estimation (GAE)
+#   - Type: float
+#   - Default: 0.95
+#   - Typical range: 0.9 to 1.0
+#   - Notes: Trade-off between bias and variance for GAE
+#            1.0 = high variance, low bias (Monte Carlo)
+#            0.0 = low variance, high bias (TD)
+#            GAE computes initial advantages, which are then normalized
+#            using GRPO's group-based method
+#
+# normalize_advantage: Whether to normalize advantages
+#   - Type: bool
+#   - Default: True
+#   - Notes: Highly recommended for stable training
+#
+# GRPO-SPECIFIC PARAMETERS
+# ------------------------
+# group_size: Number of samples per state for group-based advantage estimation
+#   - Type: int
+#   - Default: 4
+#   - Typical range: 2 to 16
+#   - Notes: Higher values = more stable gradients but more computation
+#            Core GRPO innovation - normalizes advantages within groups
+#
+# kl_coef: Coefficient for KL divergence penalty in loss
+#   - Type: float
+#   - Default: 0.1
+#   - Typical range: 0.01 to 0.5
+#   - Notes: Controls how much policy can deviate from reference
+#            Higher = more conservative updates
+#            Lower = more aggressive exploration
+#
+# CLIPPING PARAMETERS (PPO-style)
+# -------------------------------
+# clip_range: Clipping parameter for policy objective
+#   - Type: float or Schedule
+#   - Default: 0.2
+#   - Typical range: 0.1 to 0.4
+#   - Notes: Limits policy update magnitude per step
+#            Can be a function of progress remaining
+#
+# clip_range_vf: Clipping parameter for value function (hybrid mode only)
+#   - Type: float, Schedule, or None
+#   - Default: None (no clipping)
+#   - Typical range: None, or 0.1 to 10.0 if used
+#   - Notes: Only relevant when vf_coef > 0 (hybrid GRPO-PPO mode)
+#            For pure GRPO (vf_coef=0), leave as None
+#            Depends on reward scaling when used
+#
+# LOSS COEFFICIENTS
+# -----------------
+# ent_coef: Entropy coefficient for exploration bonus
+#   - Type: float
+#   - Default: 0.0
+#   - Typical range: 0.0 to 0.1
+#   - Notes: Higher values encourage more exploration
+#            Can help prevent premature convergence
+#
+# vf_coef: Value function coefficient for the loss
+#   - Type: float
+#   - Default: 0.0 (pure GRPO - no value function)
+#   - Typical range: 0.0 to 1.0
+#   - Notes: Set to 0 for pure GRPO
+#            Set > 0 for hybrid GRPO-PPO approach
+#
+# OPTIMIZATION PARAMETERS
+# -----------------------
+# max_grad_norm: Maximum value for gradient clipping
+#   - Type: float
+#   - Default: 0.5
+#   - Typical range: 0.3 to 1.0
+#   - Notes: Prevents exploding gradients
+#
+# target_kl: KL divergence threshold for early stopping
+#   - Type: float or None
+#   - Default: None (no early stopping)
+#   - Typical range: 0.01 to 0.05 if used
+#   - Notes: Stops epoch early if KL > 1.5 * target_kl
+#            Helps prevent large policy updates
+#
+# EXPLORATION PARAMETERS (gSDE)
+# -----------------------------
+# use_sde: Use generalized State Dependent Exploration
+#   - Type: bool
+#   - Default: False
+#   - Notes: Alternative to action noise exploration
+#            Often better for continuous control
+#
+# sde_sample_freq: Frequency of noise matrix resampling
+#   - Type: int
+#   - Default: -1 (only at rollout start)
+#   - Typical range: -1, or 4 to 64
+#   - Notes: Lower values = more exploration diversity
+#            Only used when use_sde=True
+#
+# POLICY NETWORK PARAMETERS
+# -------------------------
+# policy_kwargs: Additional arguments for policy network
+#   - Type: dict or None
+#   - Default: None
+#   - Common options:
+#     - net_arch: Network architecture, e.g., dict(pi=[256, 256], vf=[256, 256])
+#     - log_std_init: Initial log standard deviation, typical range: -3 to 0
+#     - activation_fn: Activation function (th.nn.Tanh, th.nn.ReLU, etc.)
+#     - ortho_init: Orthogonal initialization (default: True)
+#
+# LOGGING AND MISC PARAMETERS
+# ---------------------------
+# tensorboard_log: Directory for TensorBoard logs
+#   - Type: str or None
+#   - Default: None
+#
+# verbose: Verbosity level
+#   - Type: int
+#   - Default: 0
+#   - Values: 0 (none), 1 (info), 2 (debug)
+#
+# seed: Random seed for reproducibility
+#   - Type: int or None
+#   - Default: None
+#
+# device: Device for computation
+#   - Type: str or torch.device
+#   - Default: "auto"
+#   - Values: "auto", "cpu", "cuda", "cuda:0", etc.
+#
+# stats_window_size: Window size for rollout logging
+#   - Type: int
+#   - Default: 100
+#   - Notes: Number of episodes to average for reported metrics
+#
+# rollout_buffer_class: Custom rollout buffer class
+#   - Type: class or None
+#   - Default: None (uses RolloutBuffer)
+#
+# rollout_buffer_kwargs: Arguments for rollout buffer
+#   - Type: dict or None
+#   - Default: None
+#
+# =============================================================================
+# ENVIRONMENT-SPECIFIC CONFIGURATIONS
+# =============================================================================
+# Below are tuned configurations for specific environments.
+# Use these as starting points and adjust based on your results.
+# =============================================================================
 
 ## Custom envs
 #donkey-generated-track-v0:
