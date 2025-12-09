@@ -10,7 +10,8 @@ python examples/sac_vs_grpo.py \
   --max-timesteps 400000 \
   --eval-every 20000 \
   --n-envs 8 \
-  --eval-episodes 5
+  --eval-episodes 5 \
+  --seed 0
 ```
 
 - The script will print intermediate evaluation rewards for both agents.

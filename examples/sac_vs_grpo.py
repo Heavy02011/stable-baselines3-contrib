@@ -78,9 +78,7 @@ def train_until_solved(
             gradient_steps=32,
             tau=0.01,
             ent_coef=0.1,
-            use_sde=True,
-            learning_starts=0,
-            policy_kwargs=dict(log_std_init=-3.67, net_arch=[64, 64]),
+            use_sde=False,
             verbose=1,
             seed=seed,
         )
@@ -169,7 +167,7 @@ def main() -> None:
     parser.add_argument("--max-timesteps", type=int, default=400_000, help="Per-agent training budget.")
     parser.add_argument("--eval-episodes", type=int, default=5, help="Episodes used for evaluation rollouts.")
     parser.add_argument("--eval-every", type=int, default=20_000, help="Train this many timesteps between evals.")
-    parser.add_argument("--seed", type=int, default=432640)
+    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--n-envs", type=int, default=8, help="Parallel environments for on-policy (GRPO).")
     parser.add_argument(
         "--plot-path",
