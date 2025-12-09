@@ -5,8 +5,32 @@ This script optimizes GRPO hyperparameters to improve performance on the
 MountainCarContinuous-v0 environment. It uses Optuna to search for the best
 combination of hyperparameters that maximize the evaluation reward.
 
+The optimization process:
+1. Samples hyperparameters from predefined ranges using TPESampler
+2. Trains GRPO agent for a fixed number of timesteps (default: 100k)
+3. Evaluates the agent periodically and reports intermediate values
+4. Prunes unpromising trials early using MedianPruner
+5. Saves the best hyperparameters to a file
+
+Results from 30 trials optimization:
+- Best reward: -0.00 (essentially 0.0)
+- Best trial: #6
+- Key findings: Lower learning rate, smaller batch size, higher entropy coefficient
+
 Usage:
-    python examples/optimize_grpo_hyperparameters.py --n-trials 50 --n-jobs 1
+    # Basic usage (30 trials)
+    python examples/optimize_grpo_hyperparameters.py
+    
+    # Extended optimization (100 trials with 4 parallel jobs)
+    python examples/optimize_grpo_hyperparameters.py --n-trials 100 --n-jobs 4
+    
+    # With persistent storage
+    python examples/optimize_grpo_hyperparameters.py --storage sqlite:///optuna_grpo.db
+    
+    # Custom output path
+    python examples/optimize_grpo_hyperparameters.py --output results/best_params.txt
+
+See examples/grpo_optimization_results.md for detailed results and analysis.
 """
 
 from __future__ import annotations
