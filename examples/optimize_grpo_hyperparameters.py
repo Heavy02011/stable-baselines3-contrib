@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any, Dict
 
 import gymnasium as gym
 import optuna
@@ -86,6 +85,7 @@ def objective(trial: optuna.Trial) -> float:
     
     # Ensure batch_size is compatible with n_steps
     if batch_size > n_steps:
+        print(f"Warning: batch_size ({batch_size}) > n_steps ({n_steps}), adjusting batch_size to {n_steps}")
         batch_size = n_steps
     
     # Create environment
@@ -141,12 +141,14 @@ def objective(trial: optuna.Trial) -> float:
         if isinstance(e, optuna.TrialPruned):
             raise
         print(f"Trial failed with error: {e}")
-        return -200.0  # Return a very low reward for failed trials
+        # Return a penalty much lower than the environment's minimum reward
+        # MountainCarContinuous typically has rewards between -100 and 100
+        return -200.0
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Optimize GRPO hyperparameters using Optuna")
-    parser.add_argument("--n-trials", type=int, default=50, help="Number of optimization trials")
+    parser.add_argument("--n-trials", type=int, default=30, help="Number of optimization trials")
     parser.add_argument("--n-jobs", type=int, default=1, help="Number of parallel jobs")
     parser.add_argument("--study-name", type=str, default="grpo_mountaincar_optimization", 
                         help="Name of the Optuna study")
@@ -199,7 +201,7 @@ def main() -> None:
     # Print pruning statistics
     pruned_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED]
     complete_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-    print(f"\nStatistics:")
+    print("\nStatistics:")
     print(f"  Number of finished trials: {len(study.trials)}")
     print(f"  Number of pruned trials: {len(pruned_trials)}")
     print(f"  Number of complete trials: {len(complete_trials)}")
