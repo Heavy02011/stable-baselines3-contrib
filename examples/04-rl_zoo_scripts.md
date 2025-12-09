@@ -1,5 +1,7 @@
 # Vergleich SAC / GRPO
 
+> Hinweis: Diese rl\_zoo3-Kurzbefehle bleiben nur als Referenz erhalten. Für die aktuelle, gepflegte Gegenüberstellung samt abgestimmter Hyperparameter siehe `examples/sac_vs_grpo.py` und die begleitende Datei `examples/sac_vs_grpo.md`.
+
 ## SAC
 ```yaml
 python -m rl_zoo3.train \
