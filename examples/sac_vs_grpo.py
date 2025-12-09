@@ -66,14 +66,17 @@ def train_until_solved(
         model = SAC(
             "MlpPolicy",
             env,
-            learning_rate=3e-4,
-            gamma=0.99,
-            buffer_size=100_000,
-            batch_size=256,
-            train_freq=1,
-            gradient_steps=1,
-            tau=0.02,
-            ent_coef="auto",
+            learning_rate=0.0003,
+            gamma=0.9999,
+            buffer_size=50_000,
+            batch_size=512,
+            train_freq=32,
+            gradient_steps=32,
+            tau=0.01,
+            ent_coef=0.1,
+            use_sde=True,
+            learning_starts=0,
+            policy_kwargs=dict(log_std_init=-3.67, net_arch=[64, 64]),
             verbose=1,
             seed=seed,
         )
@@ -146,7 +149,7 @@ def main() -> None:
     parser.add_argument("--max-timesteps", type=int, default=300_000, help="Per-agent training budget.")
     parser.add_argument("--eval-episodes", type=int, default=5, help="Episodes used for evaluation rollouts.")
     parser.add_argument("--eval-every", type=int, default=10_000, help="Train this many timesteps between evals.")
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=432640)
     parser.add_argument(
         "--plot-path",
         type=Path,
