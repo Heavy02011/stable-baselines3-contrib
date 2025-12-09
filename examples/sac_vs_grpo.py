@@ -9,6 +9,8 @@ comparison plot so you can see which learner solves the task faster.
 
 Usage:
     python examples/sac_vs_grpo.py --max-timesteps 300000 --threshold 90
+
+See examples/sac_vs_grpo.md for the tuned hyperparameters and context.
 """
 
 from __future__ import annotations

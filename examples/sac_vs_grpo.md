@@ -2,6 +2,8 @@
 
 This walkthrough trains **SAC** (from Stable-Baselines3) and **GRPO** (from sb3-contrib) side by side on `MountainCarContinuous-v0` until they exceed a reward of **90**. The helper script logs which algorithm solves the task faster and produces a compact plot.
 
+> This is the maintained comparison example for this fork. It supersedes the older notebook/RL-Zoo snippets and mirrors the tuned parameters summarized in `grpo_optimization_results.md` / `grpo_optimized_params.txt`.
+
 ## How to run
 
 ```bash

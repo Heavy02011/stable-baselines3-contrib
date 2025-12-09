@@ -51,3 +51,6 @@ MUJOCO_LOG.TXT
 # Example generated files (models, videos)
 examples/models/
 examples/videos/
+examples/**/models/
+examples/**/videos/
+examples/**/tensorboard_logs/
