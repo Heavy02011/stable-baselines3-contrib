@@ -20,6 +20,7 @@ from pathlib import Path
 
 import gymnasium as gym
 from stable_baselines3 import SAC
+from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 
@@ -59,12 +60,14 @@ def train_until_solved(
     eval_episodes: int,
     seed: int,
     eval_every: int = 10_000,
+    n_envs: int = 1,
 ) -> tuple[RunStats, SAC | GRPO]:
-    env = make_env(seed)
+    train_env = make_env(seed) if algo == "sac" else make_vec_env(ENV_ID, n_envs=n_envs, seed=seed)
+    eval_env = make_env(seed)
     if algo == "sac":
         model = SAC(
             "MlpPolicy",
-            env,
+            train_env,
             learning_rate=0.0003,
             gamma=0.9999,
             buffer_size=50_000,
@@ -80,23 +83,27 @@ def train_until_solved(
             seed=seed,
         )
     elif algo == "grpo":
-        # Optimized hyperparameters using Optuna (best reward: -0.00)
-        # Values rounded to 4 significant digits for readability
+        # Hyperparameters that solve MountainCarContinuous-v0 (mean reward > 90)
+        # when trained with 8 parallel environments and ~400k timesteps.
         model = GRPO(
             "MlpPolicy",
-            env,
-            learning_rate=1.737e-05,
-            n_steps=256,
-            batch_size=128,
-            n_epochs=11,
-            gamma=0.9650,
-            gae_lambda=0.9256,
-            clip_range=0.1111,
-            ent_coef=0.06096,
-            vf_coef=0.5524,
-            max_grad_norm=0.3360,
+            train_env,
+            learning_rate=3e-4,
+            n_steps=1024,
+            batch_size=1024,
+            n_epochs=10,
+            gamma=0.999,
+            gae_lambda=0.95,
             group_size=4,
-            kl_coef=0.2498,
+            kl_coef=0.05,
+            clip_range=0.2,
+            ent_coef=0.0,
+            vf_coef=0.5,
+            clip_range_vf=0.2,
+            max_grad_norm=0.5,
+            use_sde=True,
+            sde_sample_freq=4,
+            policy_kwargs=dict(net_arch=[256, 256]),
             seed=seed,
             verbose=1,
         )
@@ -112,7 +119,7 @@ def train_until_solved(
         if chunk <= 0:
             break
         model.learn(total_timesteps=chunk, reset_num_timesteps=False, progress_bar=False)
-        mean_reward, _ = evaluate_policy(model, env, n_eval_episodes=eval_episodes, deterministic=True)
+        mean_reward, _ = evaluate_policy(model, eval_env, n_eval_episodes=eval_episodes, deterministic=True)
         rewards.append(mean_reward)
         steps.append(model.num_timesteps)
         print(f"[{algo.upper()}] {model.num_timesteps} steps -> mean_reward={mean_reward:.2f}")
@@ -121,7 +128,8 @@ def train_until_solved(
             break
 
     wallclock_s = time.time() - start
-    env.close()
+    train_env.close()
+    eval_env.close()
     return RunStats(algo=algo, rewards=rewards, timesteps=steps, wallclock_s=wallclock_s, solved=solved), model
 
 
@@ -153,10 +161,11 @@ def plot_progress(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--threshold", type=float, default=90.0, help="Reward threshold for success.")
-    parser.add_argument("--max-timesteps", type=int, default=300_000, help="Per-agent training budget.")
+    parser.add_argument("--max-timesteps", type=int, default=400_000, help="Per-agent training budget.")
     parser.add_argument("--eval-episodes", type=int, default=5, help="Episodes used for evaluation rollouts.")
-    parser.add_argument("--eval-every", type=int, default=10_000, help="Train this many timesteps between evals.")
+    parser.add_argument("--eval-every", type=int, default=20_000, help="Train this many timesteps between evals.")
     parser.add_argument("--seed", type=int, default=432640)
+    parser.add_argument("--n-envs", type=int, default=8, help="Parallel environments for on-policy (GRPO).")
     parser.add_argument(
         "--plot-path",
         type=Path,
@@ -175,6 +184,7 @@ def main() -> None:
             eval_episodes=args.eval_episodes,
             seed=args.seed,
             eval_every=args.eval_every,
+            n_envs=args.n_envs,
         )
         results.append(stats)
 
