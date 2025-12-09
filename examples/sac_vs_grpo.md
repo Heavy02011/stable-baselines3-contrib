@@ -17,6 +17,7 @@ python examples/sac_vs_grpo.py \
 - The script will print intermediate evaluation rewards for both agents.
 - Training stops early as soon as the current agent crosses the reward threshold or the budget is spent.
 - A plot named `sac_vs_grpo.png` is written next to the script (requires `matplotlib`; install with `pip install matplotlib` if you want the graphic).
+![](sac_vs_grpo.png)
 
 ## Notes on current results
 
