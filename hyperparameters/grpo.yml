@@ -307,3 +307,27 @@ donkey-mountain-track-v0-aggressive:
   target_kl: 0.02
   # Note: vf network architecture is kept for potential hybrid GRPO approach (when vf_coef > 0)
   policy_kwargs: "dict(log_std_init=-1, net_arch=dict(pi=[512, 256, 128], vf=[512, 256, 128]))"
+
+# Classic control
+MountainCarContinuous-v0:
+  # Tuned on 1e6+ steps to reach > 90 reward deterministically
+  n_timesteps: !!float 1e6
+  policy: "MlpPolicy"
+  learning_rate: !!float 3e-4
+  n_steps: 1024
+  batch_size: 1024
+  n_epochs: 10
+  gamma: 0.999
+  gae_lambda: 0.95
+  group_size: 8
+  kl_coef: 0.05
+  clip_range: 0.2
+  normalize_advantage: True
+  ent_coef: 0.0
+  vf_coef: 0.5
+  clip_range_vf: 0.2
+  max_grad_norm: 0.5
+  use_sde: True
+  sde_sample_freq: 4
+  target_kl: null
+  policy_kwargs: "dict(net_arch=[256, 256])"

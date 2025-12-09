@@ -1,9 +1,11 @@
 """Tests for GRPO algorithm."""
 
+import gymnasium as gym
 import pytest
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.envs import IdentityEnv, IdentityEnvMultiBinary, IdentityEnvMultiDiscrete
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from sb3_contrib import GRPO
@@ -136,3 +138,14 @@ def test_grpo_hybrid():
         verbose=1,
     )
     model.learn(total_timesteps=300)
+
+
+def test_grpo_mountaincar_pretrained():
+    """Ensure pretrained GRPO solves MountainCarContinuous."""
+    model = GRPO.load("examples/examples/models/grpo_mountaincar.zip")
+    env = Monitor(gym.make("MountainCarContinuous-v0"))
+    try:
+        mean_reward, _ = evaluate_policy(model, env, n_eval_episodes=5, deterministic=True)
+    finally:
+        env.close()
+    assert mean_reward > 90.0
