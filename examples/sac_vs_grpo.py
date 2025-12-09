@@ -81,15 +81,22 @@ def train_until_solved(
             seed=seed,
         )
     elif algo == "grpo":
+        # Optimized hyperparameters using Optuna (best reward: -0.00)
         model = GRPO(
             "MlpPolicy",
             env,
+            learning_rate=1.736723715159314e-05,
             n_steps=256,
-            batch_size=256,
-            gamma=0.99,
-            learning_rate=3e-4,
-            clip_range=0.2,
-            vf_coef=0.5,
+            batch_size=128,
+            n_epochs=11,
+            gamma=0.9650138276598568,
+            gae_lambda=0.9256356444939721,
+            clip_range=0.11106608420635984,
+            ent_coef=0.06095643339798969,
+            vf_coef=0.5524111209059753,
+            max_grad_norm=0.3360351258749925,
+            group_size=4,
+            kl_coef=0.24983185253600587,
             seed=seed,
             verbose=1,
         )
