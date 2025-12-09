@@ -62,6 +62,8 @@ def train_until_solved(
     eval_every: int = 10_000,
     n_envs: int = 1,
 ) -> tuple[RunStats, SAC | GRPO]:
+    # SAC trains on a single monitored env (off-policy buffer handles decorrelation);
+    # GRPO follows its tuned on-policy setup with a vectorized env for stable batches.
     train_env = make_env(seed) if algo == "sac" else make_vec_env(ENV_ID, n_envs=n_envs, seed=seed)
     eval_env = make_env(seed)
     if algo == "sac":
@@ -84,7 +86,10 @@ def train_until_solved(
         )
     elif algo == "grpo":
         # Hyperparameters that solve MountainCarContinuous-v0 (mean reward > 90)
-        # when trained with 8 parallel environments and ~400k timesteps.
+        # when trained with 8 parallel environments and roughly 340k-400k timesteps,
+        # evaluated with 5 deterministic rollouts per checkpoint.
+        # Uses gSDE exploration (sde_sample_freq=4) with a 2-layer 256-unit policy.
+        # batch_size==n_steps (1024) so each epoch replays the full rollout as one batch.
         model = GRPO(
             "MlpPolicy",
             train_env,
