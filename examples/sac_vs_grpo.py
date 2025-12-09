@@ -87,7 +87,7 @@ def train_until_solved(
         # when trained with 8 parallel environments and roughly 340k-400k timesteps,
         # evaluated with 5 deterministic rollouts per checkpoint.
         # Uses gSDE exploration (sde_sample_freq=4) with a 2-layer 256-unit policy.
-        # batch_size==n_steps (1024) so each epoch replays the full rollout as one batch.
+        # batch_size==n_steps (1024) so each epoch processes all collected transitions in a single minibatch.
         model = GRPO(
             "MlpPolicy",
             train_env,
