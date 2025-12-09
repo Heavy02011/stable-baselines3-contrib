@@ -17,7 +17,6 @@ import argparse
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
 
 import gymnasium as gym
 from stable_baselines3 import SAC
@@ -33,8 +32,8 @@ ENV_ID = "MountainCarContinuous-v0"
 @dataclass
 class RunStats:
     algo: str
-    rewards: List[float]
-    timesteps: List[int]
+    rewards: list[float]
+    timesteps: list[int]
     wallclock_s: float
     solved: bool
 
@@ -60,7 +59,7 @@ def train_until_solved(
     eval_episodes: int,
     seed: int,
     eval_every: int = 10_000,
-) -> Tuple[RunStats, Union[SAC, GRPO]]:
+) -> tuple[RunStats, SAC | GRPO]:
     env = make_env(seed)
     if algo == "sac":
         model = SAC(
@@ -81,15 +80,23 @@ def train_until_solved(
             seed=seed,
         )
     elif algo == "grpo":
+        # Optimized hyperparameters using Optuna (best reward: -0.00)
+        # Values rounded to 4 significant digits for readability
         model = GRPO(
             "MlpPolicy",
             env,
+            learning_rate=1.737e-05,
             n_steps=256,
-            batch_size=256,
-            gamma=0.99,
-            learning_rate=3e-4,
-            clip_range=0.2,
-            vf_coef=0.5,
+            batch_size=128,
+            n_epochs=11,
+            gamma=0.9650,
+            gae_lambda=0.9256,
+            clip_range=0.1111,
+            ent_coef=0.06096,
+            vf_coef=0.5524,
+            max_grad_norm=0.3360,
+            group_size=4,
+            kl_coef=0.2498,
             seed=seed,
             verbose=1,
         )
@@ -119,7 +126,7 @@ def train_until_solved(
 
 
 def plot_progress(
-    results: List[RunStats], output_path: Path, threshold: float, eval_episodes: Optional[int] = None
+    results: list[RunStats], output_path: Path, threshold: float, eval_episodes: int | None = None
 ) -> None:
     try:
         import matplotlib.pyplot as plt
@@ -159,7 +166,7 @@ def main() -> None:
     args = parser.parse_args()
 
     print(f"Training SAC and GRPO on {ENV_ID} until reward >= {args.threshold}")
-    results: List[RunStats] = []
+    results: list[RunStats] = []
     for algo_name in ("sac", "grpo"):
         stats, _ = train_until_solved(
             algo_name,
