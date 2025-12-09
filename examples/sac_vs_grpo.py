@@ -17,10 +17,9 @@ import argparse
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple, Union
 
 import gymnasium as gym
-import numpy as np
 from stable_baselines3 import SAC
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
@@ -40,10 +39,18 @@ class RunStats:
     solved: bool
 
 
+def format_stats(stats: RunStats) -> str:
+    status = "✅" if stats.solved else "⚠️"
+    best = f"{max(stats.rewards):.1f}" if stats.rewards else "N/A"
+    steps = stats.timesteps[-1] if stats.timesteps else 0
+    return f"{status} {stats.algo.upper()}: best={best}, steps={steps}, wallclock={stats.wallclock_s:.1f}s"
+
+
 def make_env(seed: int) -> gym.Env:
-    env = gym.make(ENV_ID)
+    env = Monitor(gym.make(ENV_ID))
     env.reset(seed=seed)
-    return Monitor(env)
+    env.action_space.seed(seed)
+    return env
 
 
 def train_until_solved(
@@ -52,8 +59,8 @@ def train_until_solved(
     threshold: float,
     eval_episodes: int,
     seed: int,
-    eval_every: int = 5000,
-) -> Tuple[RunStats, object]:
+    eval_every: int = 10_000,
+) -> Tuple[RunStats, Union[SAC, GRPO]]:
     env = make_env(seed)
     if algo == "sac":
         model = SAC(
@@ -63,8 +70,8 @@ def train_until_solved(
             gamma=0.99,
             buffer_size=100_000,
             batch_size=256,
-            train_freq=64,
-            gradient_steps=64,
+            train_freq=1,
+            gradient_steps=1,
             tau=0.02,
             ent_coef="auto",
             verbose=1,
@@ -74,7 +81,7 @@ def train_until_solved(
         model = GRPO(
             "MlpPolicy",
             env,
-            n_steps=1024,
+            n_steps=256,
             batch_size=256,
             gamma=0.99,
             learning_rate=3e-4,
@@ -91,7 +98,10 @@ def train_until_solved(
     start = time.time()
 
     while model.num_timesteps < max_timesteps:
-        model.learn(total_timesteps=eval_every, reset_num_timesteps=False, progress_bar=False)
+        chunk = min(eval_every, max_timesteps - model.num_timesteps)
+        if chunk <= 0:
+            break
+        model.learn(total_timesteps=chunk, reset_num_timesteps=False, progress_bar=False)
         mean_reward, _ = evaluate_policy(model, env, n_eval_episodes=eval_episodes, deterministic=True)
         rewards.append(mean_reward)
         steps.append(model.num_timesteps)
@@ -105,7 +115,9 @@ def train_until_solved(
     return RunStats(algo=algo, rewards=rewards, timesteps=steps, wallclock_s=wallclock_s, solved=solved), model
 
 
-def plot_progress(results: List[RunStats], output_path: Path) -> None:
+def plot_progress(
+    results: List[RunStats], output_path: Path, threshold: float, eval_episodes: Optional[int] = None
+) -> None:
     try:
         import matplotlib.pyplot as plt
     except ImportError:
@@ -115,9 +127,10 @@ def plot_progress(results: List[RunStats], output_path: Path) -> None:
     fig, ax = plt.subplots(figsize=(7, 4))
     for stats in results:
         ax.plot(stats.timesteps, stats.rewards, marker="o", label=f"{stats.algo.upper()}")
-    ax.axhline(90, color="gray", linestyle="--", linewidth=1, label="target reward (90)")
+    ax.axhline(threshold, color="gray", linestyle="--", linewidth=1, label=f"target reward ({threshold})")
     ax.set_xlabel("Timesteps")
-    ax.set_ylabel("Mean reward (5 episodes)")
+    episode_label = f"{eval_episodes} eval episodes" if eval_episodes is not None else "evaluation rollouts"
+    ax.set_ylabel(f"Mean reward ({episode_label})")
     ax.set_title("MountainCarContinuous-v0: SAC vs GRPO")
     ax.legend()
     ax.grid(True, linestyle="--", alpha=0.5)
@@ -143,29 +156,20 @@ def main() -> None:
     args = parser.parse_args()
 
     print(f"Training SAC and GRPO on {ENV_ID} until reward >= {args.threshold}")
-    sac_stats, _ = train_until_solved(
-        "sac",
-        max_timesteps=args.max_timesteps,
-        threshold=args.threshold,
-        eval_episodes=args.eval_episodes,
-        seed=args.seed,
-        eval_every=args.eval_every,
-    )
-    grpo_stats, _ = train_until_solved(
-        "grpo",
-        max_timesteps=args.max_timesteps,
-        threshold=args.threshold,
-        eval_episodes=args.eval_episodes,
-        seed=args.seed,
-        eval_every=args.eval_every,
-    )
+    results: List[RunStats] = []
+    for algo_name in ("sac", "grpo"):
+        stats, _ = train_until_solved(
+            algo_name,
+            max_timesteps=args.max_timesteps,
+            threshold=args.threshold,
+            eval_episodes=args.eval_episodes,
+            seed=args.seed,
+            eval_every=args.eval_every,
+        )
+        results.append(stats)
 
-    plot_progress([sac_stats, grpo_stats], args.plot_path)
-
-    def format_stats(stats: RunStats) -> str:
-        status = "✅" if stats.solved else "⚠️"
-        best = max(stats.rewards) if stats.rewards else float("-inf")
-        return f"{status} {stats.algo.upper()}: best={best:.1f}, steps={stats.timesteps[-1] if stats.timesteps else 0}, wallclock={stats.wallclock_s:.1f}s"
+    sac_stats, grpo_stats = results
+    plot_progress(results, args.plot_path, args.threshold, args.eval_episodes)
 
     print("Summary:")
     print("  " + format_stats(sac_stats))
