@@ -311,7 +311,7 @@ donkey-mountain-track-v0-aggressive:
 # Classic control
 MountainCarContinuous-v0:
   # Tuned to reach > 90 reward in ~60k-80k steps (8 envs, seed=0)
-  n_timesteps: 150000
+  n_timesteps: !!float 1.5e5
   policy: "MlpPolicy"
   learning_rate: !!float 4e-4
   n_steps: 512
