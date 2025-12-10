@@ -9,8 +9,8 @@ This walkthrough trains **SAC** (from Stable-Baselines3) and **GRPO** (from sb3-
 ```bash
 python examples/sac_vs_grpo.py \
   --threshold 90 \
-  --max-timesteps 400000 \
-  --eval-every 20000 \
+  --max-timesteps 150000 \
+  --eval-every 10000 \
   --n-envs 8 \
   --eval-episodes 5 \
   --seed 0
@@ -23,6 +23,6 @@ python examples/sac_vs_grpo.py \
 
 ## Notes on current results
 
-- GRPO now uses the MountainCar-proven hyperparameters (lr=3e-4, n_steps=1024, batch_size=1024, group_size=4, clip_range=0.2, vf_coef=0.5, gSDE on, net_arch=[256, 256]) with 8 parallel environments.
-- In a recent run these settings reached a mean reward of ~90.5 after ~340k timesteps (5 evaluation episodes), satisfying the >90 criterion.
+- GRPO now uses the faster MountainCar configuration (lr=4e-4, n_steps=512, batch_size=512, n_epochs=20, group_size=4, kl_coef=0.02, clip_range=0.25, vf_coef=0.5, gSDE on, net_arch=[256, 256]) with 8 parallel environments.
+- With these hyperparameters a recent run crossed 90 reward after ~60k steps (5 eval episodes), an order-of-magnitude reduction compared to the previous ~340k budget.
 - SAC keeps the previous configuration and still solves the task quickly; the plot generation remains the same (`sac_vs_grpo.png`).

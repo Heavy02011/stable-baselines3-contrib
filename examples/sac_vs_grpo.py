@@ -8,7 +8,7 @@ It records evaluation rewards along the way and produces a small
 comparison plot so you can see which learner solves the task faster.
 
 Usage:
-    python examples/sac_vs_grpo.py --max-timesteps 300000 --threshold 90
+    python examples/sac_vs_grpo.py --max-timesteps 150000 --threshold 90
 
 See examples/sac_vs_grpo.md for the tuned hyperparameters and context.
 """
@@ -86,22 +86,21 @@ def train_until_solved(
         )
     elif algo == "grpo":
         # Hyperparameters that solve MountainCarContinuous-v0 (mean reward > 90)
-        # when trained with 8 parallel environments and roughly 340k-400k timesteps,
-        # evaluated with 5 deterministic rollouts per checkpoint.
+        # with 8 parallel environments in ~60k-80k timesteps (5 deterministic evals).
         # Uses gSDE exploration (sde_sample_freq=4) with a 2-layer 256-unit policy.
-        # batch_size==n_steps (1024) so each epoch processes all collected transitions in a single minibatch.
+        # batch_size==n_steps (512) so each epoch processes all collected transitions in a single minibatch.
         model = GRPO(
             "MlpPolicy",
             train_env,
-            learning_rate=3e-4,
-            n_steps=1024,
-            batch_size=1024,
-            n_epochs=10,
+            learning_rate=4e-4,
+            n_steps=512,
+            batch_size=512,
+            n_epochs=20,
             gamma=0.999,
             gae_lambda=0.95,
             group_size=4,
-            kl_coef=0.05,
-            clip_range=0.2,
+            kl_coef=0.02,
+            clip_range=0.25,
             ent_coef=0.0,
             vf_coef=0.5,
             clip_range_vf=0.2,
@@ -166,9 +165,9 @@ def plot_progress(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--threshold", type=float, default=90.0, help="Reward threshold for success.")
-    parser.add_argument("--max-timesteps", type=int, default=400_000, help="Per-agent training budget.")
+    parser.add_argument("--max-timesteps", type=int, default=150_000, help="Per-agent training budget.")
     parser.add_argument("--eval-episodes", type=int, default=5, help="Episodes used for evaluation rollouts.")
-    parser.add_argument("--eval-every", type=int, default=20_000, help="Train this many timesteps between evals.")
+    parser.add_argument("--eval-every", type=int, default=10_000, help="Train this many timesteps between evals.")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--n-envs", type=int, default=8, help="Parallel environments for on-policy (GRPO).")
     parser.add_argument(

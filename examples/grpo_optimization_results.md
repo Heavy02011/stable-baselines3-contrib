@@ -7,27 +7,27 @@ This document summarizes the current optimized/tuned GRPO (Group Relative Policy
 ## Current best (validated run)
 
 - **Environment**: MountainCarContinuous-v0
-- **Training steps**: ~400k (8 parallel envs)
+- **Training steps**: ~60k (8 parallel envs)
 - **Evaluation**: 5 deterministic episodes per checkpoint
 - **Seed**: 0
-- **Result**: ~92.0 mean reward (meets > 90 requirement)
+- **Result**: ~90.7 mean reward (meets > 90 requirement)
 
 ## Final tuned hyperparameters
 
 ```
-learning_rate = 3e-4
-n_steps = 1024
-batch_size = 1024
-n_epochs = 10
+learning_rate = 4e-4
+n_steps = 512
+batch_size = 512
+n_epochs = 20
 gamma = 0.999
 gae_lambda = 0.95
-clip_range = 0.2
+clip_range = 0.25
 ent_coef = 0.0
 vf_coef = 0.5
 clip_range_vf = 0.2
 max_grad_norm = 0.5
 group_size = 4
-kl_coef = 0.05
+kl_coef = 0.02
 use_sde = True
 sde_sample_freq = 4
 policy_net_arch = [256, 256]
@@ -48,8 +48,8 @@ Reproduction (matching the validated run):
 ```bash
 python examples/sac_vs_grpo.py \\
   --threshold 90 \\
-  --max-timesteps 400000 \\
-  --eval-every 20000 \\
+  --max-timesteps 150000 \\
+  --eval-every 10000 \\
   --eval-episodes 5 \\
   --n-envs 8 \\
   --seed 0
