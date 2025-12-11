@@ -9,8 +9,8 @@ This walkthrough trains **SAC** (from Stable-Baselines3) and **GRPO** (from sb3-
 ```bash
 python examples/sac_vs_grpo.py \
   --threshold 90 \
-  --max-timesteps 150000 \
-  --eval-every 10000 \
+  --max-timesteps 400000 \
+  --eval-every 20000 \
   --n-envs 8 \
   --eval-episodes 5 \
   --seed 0

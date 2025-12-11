@@ -165,9 +165,9 @@ def plot_progress(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--threshold", type=float, default=90.0, help="Reward threshold for success.")
-    parser.add_argument("--max-timesteps", type=int, default=150_000, help="Per-agent training budget.")
+    parser.add_argument("--max-timesteps", type=int, default=400_000, help="Per-agent training budget.")
     parser.add_argument("--eval-episodes", type=int, default=5, help="Episodes used for evaluation rollouts.")
-    parser.add_argument("--eval-every", type=int, default=10_000, help="Train this many timesteps between evals.")
+    parser.add_argument("--eval-every", type=int, default=20_000, help="Train this many timesteps between evals.")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--n-envs", type=int, default=8, help="Parallel environments for on-policy (GRPO).")
     parser.add_argument(
