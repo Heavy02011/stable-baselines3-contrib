@@ -1,20 +1,20 @@
 # Optimized GRPO Hyperparameters for MountainCarContinuous-v0
-# Best reward: 92.0 (5-eval mean) @ ~400k steps, seed=0, 8 envs
-# Source: validated run used in examples/sac_vs_grpo.py
+# Best reward: 90.7 (5-eval mean) @ ~61k steps, seed=0, 8 envs
+# Source: validated run used in examples/sac_vs_grpo.py (fast solve)
 
-learning_rate = 3e-4
-n_steps = 1024
-batch_size = 1024
-n_epochs = 10
+learning_rate = 4e-4
+n_steps = 512
+batch_size = 512
+n_epochs = 20
 gamma = 0.999
 gae_lambda = 0.95
-clip_range = 0.2
+clip_range = 0.25
 ent_coef = 0.0
 vf_coef = 0.5
 clip_range_vf = 0.2
 max_grad_norm = 0.5
 group_size = 4
-kl_coef = 0.05
+kl_coef = 0.02
 use_sde = True
 sde_sample_freq = 4
 policy_net_arch = [256, 256]
